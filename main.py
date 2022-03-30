@@ -29,8 +29,18 @@ parser = MyHTMLParser()
 
 
 def add_url(url):
-    if (url[0:1] == "/"):
+    if url[0:1] == "/":
         url = base_url + url
+
+    if url[0:7] == "mailto:":
+        if args.verbose > 1:
+            print("Skipping mailto")
+            return
+
+    if url[0:4] == "tel:":
+        if args.verbose > 1:
+            print("Skipping tel")
+            return
 
     try:
         existing = next(x for x in urls if x["url"] == url)
