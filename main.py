@@ -2,12 +2,16 @@ from html.parser import HTMLParser
 from urllib.parse import urlparse
 import argparse
 import requests
+import json
 
 parser = argparse.ArgumentParser(
     "linkchecker", description="Recursively check a URL exists, and check the links on that page, etc.")
 parser.add_argument("url", help="The Starting URL to check", type=str)
 parser.add_argument(
     "--delay", help="Time in ms between requests, default=10", default=10)
+parser.add_argument("-v", "--verbose", action="count", default=0)
+parser.add_argument("-f", "--format", default="default",
+                    help="Options are default or json")
 args = parser.parse_args()
 
 urls = []
@@ -52,7 +56,8 @@ def next_url():
 
 
 def handle_url(url):
-    print("Checking", url["url"], "...", end="")
+    if args.verbose > 0:
+        print(url["url"], "... ", end="")
 
     url["parsed"] = True
 
@@ -61,19 +66,23 @@ def handle_url(url):
         r = requests.get(url["url"])
     except requests.exceptions.InvalidURL:
         url["error"] = "Invalid URL"
-        print("")
+        if args.verbose > 0:
+            print("Invalid URL")
         return
     except requests.exceptions.ConnectionError:
         url["error"] = "Connection error"
-        print("")
+        if args.verbose > 0:
+            print("Connection error")
         return
     except requests.exceptions.MissingSchema:
         url["error"] = "Missing schema"
-        print("")
+        if args.verbose > 0:
+            print("Missing schema")
         return
 
     url["code"] = r.status_code
-    print(r.status_code)
+    if args.verbose > 0:
+        print(r.status_code)
 
     # If non-200, log error and bail
     if r.status_code != 200:
@@ -89,13 +98,31 @@ def handle_url(url):
 def run():
     url = next_url()
 
-    while url:
-        handle_url(url)
-        url = next_url()
+    try:
+        while url:
+            handle_url(url)
+            url = next_url()
+    except KeyboardInterrupt:
+        print("Quitting early!")
 
-    print("")
-    print("All done!")
-    print(urls)
+    if args.format == "json":
+        print(json.dumps(urls))
+    else:
+        good_count = sum(map(lambda url: url["code"] == 200, urls))
+        bad_count = sum(map(lambda url: url["code"] != 200, urls))
+
+        if args.verbose == 0:
+            for url in urls:
+                if url["code"] != 200:
+                    print(url["code"], url["url"], url["error"])
+
+        print("")
+
+        print(good_count, "good URLs!")
+        if bad_count > 0:
+            print(bad_count, "bad URLs :(")
+        else:
+            print("No bad URLs!")
 
 
 start_url = args.url
