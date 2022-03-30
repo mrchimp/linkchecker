@@ -89,6 +89,11 @@ def handle_url(url):
         if args.verbose > 0:
             print("Missing schema")
         return
+    except requests.exceptions.InvalidSchema:
+        url["error"] = "Invalid schema"
+        if args.verbose > 0:
+            print("Invalid schema")
+        return
 
     url["code"] = r.status_code
     if args.verbose > 0:
