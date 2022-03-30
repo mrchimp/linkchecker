@@ -43,3 +43,9 @@ Note: don't use -v with this as that will generate an invalid JSON file, which i
 ```bash
 $ python main.py https://example.com --format json > output.json
 ```
+
+
+## Todo
+
+- Prevent outputting verbose output when using JSON format
+- Track on which page broken URLs are found
